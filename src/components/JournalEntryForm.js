@@ -56,6 +56,10 @@ const JournalEntryForm = ({
     }
   }, [showSuccessDialog]);
 
+  const addLine = () => {
+    setJournalLines([...journalLines, { id: journalLines.length + 1, account: '', debit: '', credit: '' }]);
+  };
+
   const getAccountAliases = () => {
     return {
       'revenue': ['revenue', 'service revenue', 'consulting revenue', 'rent revenue'],
