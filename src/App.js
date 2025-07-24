@@ -59,24 +59,36 @@ function App() {
 
   // Navigation functions
   const nextScenario = () => {
-    // Find the next scenario ID
-    const nextScenario = sortedScenarios[currentIndex + 1];
+    const nextIndex = (currentIndex + 1) % sortedScenarios.length;
+    const nextScenario = sortedScenarios[nextIndex];
     if (nextScenario) {
       setCurrentId(nextScenario.id);
       setShowSolution(false);
       setIsCorrect(null);
       setShowFeedback(false);
-    } else {
-      setFeedbackMessage('Congratulations! You have finished all the prepaid and accrual journal entries in this app!');
-      setShowFeedback(true);
     }
   };
 
   const previousScenario = () => {
-    // Find the previous scenario ID
-    const previousScenario = sortedScenarios[currentIndex - 1];
+    const prevIndex = (currentIndex - 1 + sortedScenarios.length) % sortedScenarios.length;
+    const previousScenario = sortedScenarios[prevIndex];
     if (previousScenario) {
       setCurrentId(previousScenario.id);
+      setShowSolution(false);
+      setIsCorrect(null);
+      setShowFeedback(false);
+    }
+  };
+
+  const randomScenario = () => {
+    let randomIndex;
+    do {
+      randomIndex = Math.floor(Math.random() * sortedScenarios.length);
+    } while (randomIndex === currentIndex);
+    
+    const randomScenario = sortedScenarios[randomIndex];
+    if (randomScenario) {
+      setCurrentId(randomScenario.id);
       setShowSolution(false);
       setIsCorrect(null);
       setShowFeedback(false);
@@ -106,16 +118,16 @@ function App() {
       setShowFeedback(true);
       setTimeout(() => {
         if (!isLastScenario) {
-          nextScenario();
           setShowFeedback(false);
+          nextScenario();
         }
-      }, 4000);
+      }, 2000);
     } else {
       setFeedbackMessage('Keep practicing! You\'ll get better with each attempt.');
       setShowFeedback(true);
       setTimeout(() => {
         setShowFeedback(false);
-      }, 4000);
+      }, 2000);
     }
   };
 
@@ -137,7 +149,8 @@ function App() {
   };
 
   // Calculate progress percentage
-  const progressPercentage = Math.round((Object.keys(completedScenarios).length / sortedScenarios.length) * 100);
+  const correctlyCompletedCount = Object.values(completedScenarios).filter(isCorrect => isCorrect).length;
+  const progressPercentage = Math.round((correctlyCompletedCount / sortedScenarios.length) * 100);
 
   return (
     <div className="app-container">
@@ -145,7 +158,7 @@ function App() {
         currentIndex={currentIndex}
         totalScenarios={sortedScenarios.length}
         progressPercentage={progressPercentage}
-        completedCount={Object.keys(completedScenarios).length}
+        completedCount={correctlyCompletedCount}
         resetProgress={resetProgress}
         masteryLevel={calculateMasteryLevel(completedScenarios)}
       />
@@ -171,6 +184,7 @@ function App() {
               isCorrect={isCorrect}
               onAdvance={nextScenario}
               onPrevious={previousScenario}
+              onRandom={randomScenario}
               isFirstScenario={isFirstScenario}
               isLastScenario={isLastScenario}
             />

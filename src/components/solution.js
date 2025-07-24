@@ -1,10 +1,12 @@
 // Create this file at: src/components/solution.js
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { formatCurrency } from '../utils/formatUtils';
 import '../styles/Solution.css';
 
 const Solution = ({ scenario }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   // Calculate totals of the solution
   const totalDebit = scenario.solution.entry.reduce(
     (sum, line) => sum + (line.debit || 0), 0
@@ -46,10 +48,20 @@ const Solution = ({ scenario }) => {
       
       {scenario.explanation && (
         <div className="explanation-container">
-          <h4 className="explanation-heading">Explanation:</h4>
-          <div className="explanation-content">
-            <ReactMarkdown>{scenario.explanation}</ReactMarkdown>
+          <div className="explanation-header">
+            <h4 className="explanation-heading">Explanation:</h4>
+            <button 
+              className="expand-collapse-button"
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              {isExpanded ? 'Collapse' : 'Expand'}
+            </button>
           </div>
+          {isExpanded && (
+            <div className="explanation-content">
+              <ReactMarkdown>{scenario.explanation}</ReactMarkdown>
+            </div>
+          )}
         </div>
       )}
     </div>

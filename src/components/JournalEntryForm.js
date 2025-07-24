@@ -12,6 +12,7 @@ const JournalEntryForm = ({
   isCorrect,
   onAdvance,
   onPrevious,
+  onRandom,
   isFirstScenario,
   isLastScenario
 }) => {
@@ -55,60 +56,76 @@ const JournalEntryForm = ({
     }
   }, [showSuccessDialog]);
 
+  const getAccountAliases = () => {
+    return {
+      'revenue': ['revenue', 'service revenue', 'consulting revenue', 'rent revenue'],
+      'unearned revenue': ['unearned revenue', 'unearned service revenue'],
+      'prepaid insurance': ['prepaid insurance', 'prepaid expenses'],
+      'insurance expense': ['insurance expense'],
+      'wages expense': ['wages expense', 'salary expense'],
+      'wages payable': ['wages payable', 'salary payable'],
+      'accounts receivable': ['accounts receivable'],
+      'interest expense': ['interest expense'],
+      'interest payable': ['interest payable'],
+      'prepaid rent': ['prepaid rent'],
+      'rent expense': ['rent expense'],
+      'factory supplies': ['factory supplies', 'office supplies'],
+      'factory supplies expense': ['factory supplies expense', 'office supplies expense'],
+      'raw materials inventory': ['raw materials inventory'],
+      'materials expense': ['materials expense'],
+      'equipment service expense': ['equipment service expense'],
+      'prepaid equipment service': ['prepaid equipment service'],
+    };
+  };
+
+  const getCanonicalAccount = (accountName, aliases) => {
+    const normalizedAccount = accountName.toLowerCase().trim();
+    for (const canonical in aliases) {
+      if (aliases[canonical].includes(normalizedAccount)) {
+        return canonical;
+      }
+    }
+    return normalizedAccount;
+  };
+
   const checkAgainstSolution = (userEntries, solution) => {
     console.log("Running checkAgainstSolution");
-    // First, check if the number of entries matches the solution
     if (userEntries.length !== solution.length) {
-      console.log("Number of entries doesn't match", userEntries.length, solution.length);
       return false;
     }
-    
-    // Create maps for better comparison
-    const solutionMap = {};
+
+    const aliases = getAccountAliases();
+    const solutionMap = new Map();
+
     solution.forEach(item => {
-      solutionMap[item.account.toLowerCase()] = {
+      const canonicalAccount = getCanonicalAccount(item.account, aliases);
+      solutionMap.set(canonicalAccount, {
         debit: item.debit,
         credit: item.credit
-      };
+      });
     });
-    
-    console.log("Solution map:", solutionMap);
-    
-    // Check each user entry against the solution, ignoring order
+
     for (const entry of userEntries) {
-      // Normalize account name for comparison (case-insensitive)
-      const accountName = entry.account.toLowerCase().trim();
-      console.log("Checking account:", accountName);
-      
-      // Check if the account exists in the solution
-      if (!solutionMap[accountName]) {
-        console.log("Account doesn't exist in solution:", accountName);
-        return false; // Account doesn't exist in solution
+      const canonicalAccount = getCanonicalAccount(entry.account, aliases);
+      if (!solutionMap.has(canonicalAccount)) {
+        return false;
       }
-      
-      const solutionEntry = solutionMap[accountName];
-      
-      // Check if the debit/credit values match
+
+      const solutionEntry = solutionMap.get(canonicalAccount);
       const userDebit = parseFloat(entry.debit) || 0;
       const userCredit = parseFloat(entry.credit) || 0;
       const solutionDebit = solutionEntry.debit || 0;
       const solutionCredit = solutionEntry.credit || 0;
-      
-      console.log("Comparing values:", 
-        "userDebit:", userDebit, "solutionDebit:", solutionDebit,
-        "userCredit:", userCredit, "solutionCredit:", solutionCredit
-      );
-      
-      // Allow a small rounding error tolerance (0.01)
-      if (Math.abs(userDebit - solutionDebit) > 0.01 || 
+
+      if (Math.abs(userDebit - solutionDebit) > 0.01 ||
           Math.abs(userCredit - solutionCredit) > 0.01) {
-        console.log("Values don't match");
         return false;
       }
+      
+      solutionMap.delete(canonicalAccount);
     }
-    
-    console.log("All checks passed, entry is correct");
-    return true;
+
+    return solutionMap.size === 0;
   };
 
   const updateLine = (id, field, value) => {
@@ -127,22 +144,17 @@ const JournalEntryForm = ({
   };
 
   const checkAnswer = () => {
-    console.log("Check Answer button clicked");
-    
     // Validate the journal entry
     const filledLines = journalLines.filter(
       line => line.account && (line.debit || line.credit)
     );
-    
-    console.log("Filled lines:", filledLines);
-    
+
     if (filledLines.length === 0) {
-      console.log("No entries found");
-      setErrorMessage('Please enter at least one journal entry line.');
+      setErrorMessage('Please make a valid journal entry.');
       onCheck(false);
       return;
     }
-    
+
     // Calculate totals
     const totalDebit = filledLines.reduce(
       (sum, line) => sum + (parseFloat(line.debit) || 0), 0
@@ -150,28 +162,23 @@ const JournalEntryForm = ({
     const totalCredit = filledLines.reduce(
       (sum, line) => sum + (parseFloat(line.credit) || 0), 0
     );
-    
-    console.log("Total debit:", totalDebit, "Total credit:", totalCredit);
-    
+
     // Check if debits equal credits
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      console.log("Debits don't equal credits");
-      setErrorMessage(`Debits (${formatCurrency(totalDebit)}) don't equal credits (${formatCurrency(totalCredit)})`);
+      setErrorMessage(`Your entry is unbalanced. Debits: ${formatCurrency(totalDebit)}, Credits: ${formatCurrency(totalCredit)}`);
       onCheck(false);
       return;
     }
-    
+
     // Check against solution
-    console.log("Checking against solution:", scenario.solution.entry);
     const isCorrect = checkAgainstSolution(filledLines, scenario.solution.entry);
-    console.log("Is correct:", isCorrect);
     onCheck(isCorrect);
-    
+
     if (isCorrect) {
       setErrorMessage('');
       setShowSuccessDialog(true);
     } else {
-      setErrorMessage('Your journal entry isn\'t quite right. Try again or check the solution.');
+      setErrorMessage('Your journal entry is balanced, but not correct. Please review it or check the solution.');
     }
   };
 
@@ -201,6 +208,14 @@ const JournalEntryForm = ({
         </button>
         
         <button
+          className="add-line-button"
+          onClick={addLine}
+          type="button"
+        >
+          Add Another Line
+        </button>
+
+        <button
           className="toggle-solution-button"
           onClick={toggleSolution}
           type="button"
@@ -223,6 +238,13 @@ const JournalEntryForm = ({
           type="button"
         >
           Previous
+        </button>
+        <button 
+          className="btn-secondary"
+          onClick={onRandom}
+          type="button"
+        >
+          Random Scenario
         </button>
         <button 
           className="btn-primary"

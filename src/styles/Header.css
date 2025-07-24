@@ -220,7 +220,77 @@
 }
 
 .reset-button:hover {
-  background: #5a6268;
+  background-color: #e53e3e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
+}
+
+.reset-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.reset-confirm-dialog {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  text-align: center;
+}
+
+.reset-confirm-dialog h3 {
+  margin-top: 0;
+  font-size: 1.5rem;
+  color: #2d3748;
+}
+
+.reset-confirm-dialog p {
+  margin-bottom: 2rem;
+  color: #4a5568;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.dialog-buttons button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dialog-buttons button:first-child {
+  background-color: #e53e3e;
+  color: white;
+}
+
+.dialog-buttons button:first-child:hover {
+  background-color: #c53030;
+}
+
+.dialog-buttons button:last-child {
+  background-color: #edf2f7;
+  color: #2d3748;
+  border: 1px solid #e2e8f0;
+}
+
+.dialog-buttons button:last-child:hover {
+  background-color: #e2e8f0;
 }
 
 @keyframes fadeIn {
