@@ -3,7 +3,7 @@ import React from 'react';
 import JournalLine from './JournalLine';
 import { formatCurrency } from '../utils/formatUtils';
 
-const JournalTable = ({ journalLines, updateLine, leaseType }) => {
+const JournalTable = ({ journalLines, updateLine }) => {
   // Calculate totals
   const totalDebit = journalLines.reduce(
     (sum, line) => sum + (parseFloat(line.debit) || 0), 0
@@ -30,7 +30,6 @@ const JournalTable = ({ journalLines, updateLine, leaseType }) => {
               line={line}
               index={index}
               updateLine={updateLine}
-              leaseType={leaseType}
             />
           ))}
           

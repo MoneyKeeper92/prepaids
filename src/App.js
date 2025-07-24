@@ -4,53 +4,30 @@ import Header from './components/Header';
 import ScenarioDetails from './components/ScenarioDetails';
 import JournalEntryForm from './components/JournalEntryForm';
 import Solution from './components/solution';
-import scenarios from './data/scenarios';
+import prepaidAccrualScenarios from './data/prepaid_accrual_scenarios';
 import { getCookie, setCookie, clearAllCookies } from './utils/cookieManager';
 import './styles/App.css';
 
-// Filter scenarios by difficulty level
-const filterScenariosByDifficulty = (scenarios, currentDifficulty) => {
-  return scenarios.filter(scenario => scenario.difficulty === currentDifficulty);
-};
+// Sort scenarios by ID
+const sortedScenarios = [...prepaidAccrualScenarios].sort((a, b) => a.id.localeCompare(b.id));
 
 // Calculate mastery level based on completed scenarios
 const calculateMasteryLevel = (completedScenarios) => {
-  const totalScenarios = scenarios.length;
+  const totalScenarios = sortedScenarios.length;
   const correctlyCompletedScenarios = Object.entries(completedScenarios)
     .filter(([_, isCorrect]) => isCorrect)
     .length;
-  return correctlyCompletedScenarios / totalScenarios; // Return decimal instead of percentage
-};
-
-// Check if all scenarios of current difficulty are completed
-const checkLevelCompletion = (completedScenarios, currentDifficulty) => {
-  const scenariosOfCurrentDifficulty = scenarios.filter(s => s.difficulty === currentDifficulty);
-  return scenariosOfCurrentDifficulty.every(scenario => completedScenarios[scenario.id]);
+  return correctlyCompletedScenarios / totalScenarios;
 };
 
 function App() {
-  // Performance tracking
-  const [performance, setPerformance] = useState(() => {
-    const saved = getCookie('performance');
-    return saved ? JSON.parse(saved) : {
-      attempts: {},
-      masteryLevel: 0,
-      currentDifficulty: 1
-    };
+  // Current scenario ID (not index)
+  const [currentId, setCurrentId] = useState(() => {
+    const savedId = getCookie('currentScenarioId');
+    return savedId ? savedId : sortedScenarios[0]?.id;
   });
 
-  // Filter scenarios based on current difficulty
-  const [filteredScenarios, setFilteredScenarios] = useState(() => {
-    return filterScenariosByDifficulty(scenarios, performance.currentDifficulty);
-  });
-
-  // Current scenario index
-  const [currentIndex, setCurrentIndex] = useState(() => {
-    const savedIndex = getCookie('currentScenarioIndex');
-    return savedIndex ? parseInt(savedIndex, 10) : 0;
-  });
-
-  // Completed scenarios tracking with attempts
+  // Completed scenarios tracking
   const [completedScenarios, setCompletedScenarios] = useState(() => {
     const saved = getCookie('completedScenarios');
     return saved ? JSON.parse(saved) : {};
@@ -61,55 +38,45 @@ function App() {
   const [isCorrect, setIsCorrect] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [showLevelComplete, setShowLevelComplete] = useState(false);
 
-  // Current scenario based on index
-  const currentScenario = filteredScenarios[currentIndex];
-  
-  // Update filtered scenarios when difficulty changes
-  useEffect(() => {
-    setFilteredScenarios(filterScenariosByDifficulty(scenarios, performance.currentDifficulty));
-    setCurrentIndex(0); // Reset to first scenario of new difficulty
-  }, [performance.currentDifficulty]);
+  // Get current scenario by ID
+  const currentScenario = sortedScenarios.find(s => s.id === currentId);
 
-  // Save current index to cookie when it changes
+  // Check if we're on first or last scenario
+  const currentIndex = sortedScenarios.findIndex(s => s.id === currentId);
+  const isFirstScenario = currentIndex === 0;
+  const isLastScenario = currentIndex === sortedScenarios.length - 1;
+
+  // Save current ID to cookie when it changes
   useEffect(() => {
-    setCookie('currentScenarioIndex', currentIndex.toString(), 30);
-  }, [currentIndex]);
+    setCookie('currentScenarioId', currentId, 30);
+  }, [currentId]);
 
   // Save completed scenarios to cookie when they change
   useEffect(() => {
     setCookie('completedScenarios', JSON.stringify(completedScenarios), 30);
   }, [completedScenarios]);
 
-  // Save performance data to cookie when it changes
-  useEffect(() => {
-    setCookie('performance', JSON.stringify(performance), 30);
-  }, [performance]);
-
-  // Check for level completion
-  useEffect(() => {
-    if (checkLevelCompletion(completedScenarios, performance.currentDifficulty)) {
-      setShowLevelComplete(true);
-      setTimeout(() => {
-        setShowLevelComplete(false);
-      }, 5000); // Hide after 5 seconds
-    }
-  }, [completedScenarios, performance.currentDifficulty]);
-
   // Navigation functions
   const nextScenario = () => {
-    if (currentIndex < filteredScenarios.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+    // Find the next scenario ID
+    const nextScenario = sortedScenarios[currentIndex + 1];
+    if (nextScenario) {
+      setCurrentId(nextScenario.id);
       setShowSolution(false);
       setIsCorrect(null);
       setShowFeedback(false);
+    } else {
+      setFeedbackMessage('Congratulations! You have finished all the prepaid and accrual journal entries in this app!');
+      setShowFeedback(true);
     }
   };
 
   const previousScenario = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+    // Find the previous scenario ID
+    const previousScenario = sortedScenarios[currentIndex - 1];
+    if (previousScenario) {
+      setCurrentId(previousScenario.id);
       setShowSolution(false);
       setIsCorrect(null);
       setShowFeedback(false);
@@ -121,39 +88,35 @@ function App() {
     const scenarioId = currentScenario.id;
     
     // Update completed scenarios
-    setCompletedScenarios(prev => ({
-      ...prev,
-      [scenarioId]: isCorrect
-    }));
-
-    // Update performance tracking
-    setPerformance(prev => {
-      const attempts = {
-        ...prev.attempts,
-        [scenarioId]: (prev.attempts[scenarioId] || 0) + 1
+    setCompletedScenarios(prev => {
+      const newCompleted = {
+        ...prev,
+        [scenarioId]: isCorrect
       };
-      
-      const masteryLevel = calculateMasteryLevel(completedScenarios);
-
-      return {
-        attempts,
-        masteryLevel,
-        currentDifficulty: prev.currentDifficulty
-      };
+      return newCompleted;
     });
 
     // Provide feedback based on performance
     if (isCorrect) {
-      setFeedbackMessage('Great job! You\'re making progress!');
-      // Add a small delay before advancing to the next scenario
-      // This allows the user to see the success message
+      // Check if this is the last scenario
+      const isLastScenario = currentIndex === sortedScenarios.length - 1;
+      setFeedbackMessage(isLastScenario 
+        ? 'Congratulations! You have finished all the prepaid and accrual journal entries in this app!'
+        : 'Great job! You\'re making progress!');
+      setShowFeedback(true);
       setTimeout(() => {
-        nextScenario();
-      }, 1500);
+        if (!isLastScenario) {
+          nextScenario();
+          setShowFeedback(false);
+        }
+      }, 4000);
     } else {
       setFeedbackMessage('Keep practicing! You\'ll get better with each attempt.');
+      setShowFeedback(true);
+      setTimeout(() => {
+        setShowFeedback(false);
+      }, 4000);
     }
-    setShowFeedback(true);
   };
 
   // Toggle solution visibility
@@ -166,30 +129,21 @@ function App() {
     if (window.confirm('Are you sure you want to reset your progress? This cannot be undone.')) {
       clearAllCookies();
       setCompletedScenarios({});
-      setCurrentIndex(0);
+      setCurrentId(sortedScenarios[0].id); // Reset to first scenario
       setShowSolution(false);
       setIsCorrect(null);
       setShowFeedback(false);
-      setShowLevelComplete(false);
-      setPerformance({
-        attempts: {},
-        masteryLevel: 0,
-        currentDifficulty: 1
-      });
-      setFilteredScenarios(filterScenariosByDifficulty(scenarios, 1));
     }
   };
 
   // Calculate progress percentage
-  const progressPercentage = Math.round((Object.keys(completedScenarios).length / scenarios.length) * 100);
+  const progressPercentage = Math.round((Object.keys(completedScenarios).length / sortedScenarios.length) * 100);
 
   return (
     <div className="app-container">
       <Header 
         currentIndex={currentIndex}
-        totalScenarios={filteredScenarios.length}
-        nextScenario={nextScenario}
-        previousScenario={previousScenario}
+        totalScenarios={sortedScenarios.length}
         progressPercentage={progressPercentage}
         completedCount={Object.keys(completedScenarios).length}
         resetProgress={resetProgress}
@@ -201,7 +155,7 @@ function App() {
           <>
             <ScenarioDetails 
               scenario={currentScenario}
-              attempts={performance.attempts[currentScenario.id] || 0}
+              attempts={completedScenarios[currentScenario.id] ? 1 : 0}
             />
             
             <JournalEntryForm
@@ -216,6 +170,9 @@ function App() {
               showSolution={showSolution}
               isCorrect={isCorrect}
               onAdvance={nextScenario}
+              onPrevious={previousScenario}
+              isFirstScenario={isFirstScenario}
+              isLastScenario={isLastScenario}
             />
             
             {showSolution && (
@@ -225,14 +182,6 @@ function App() {
             {showFeedback && (
               <div className={`feedback-message ${isCorrect ? 'success' : 'error'}`}>
                 {feedbackMessage}
-              </div>
-            )}
-
-            {showLevelComplete && (
-              <div className="level-complete-message">
-                {performance.currentDifficulty === 1 && "Congratulations! You've completed the Easy Level!"}
-                {performance.currentDifficulty === 2 && "Amazing! You've completed the Medium Level!"}
-                {performance.currentDifficulty === 3 && "Outstanding! You've completed the Hard Level!"}
               </div>
             )}
           </>

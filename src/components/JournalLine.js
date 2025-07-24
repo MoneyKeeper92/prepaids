@@ -1,29 +1,45 @@
 // src/components/JournalLine.js
 import React, { useState, useEffect } from 'react';
 
-const JournalLine = ({ line, index, updateLine, leaseType }) => {
+const JournalLine = ({ line, index, updateLine }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   
-  // Define standard account names based on lease type
+  // Define standard account names for prepaid and accrual scenarios
   const getAccountOptions = () => {
-    if (leaseType === 'finance') {
-      return [
-        'Interest Expense',
-        'Lease Liability',
-        'Cash',
-        'Amortization Expense (ROU Asset)',
-        'Accumulated Amortization - ROU Asset'
-      ];
-    } else {
-      return [
-        'Lease Expense',
-        'Cash',
-        'Right-of-Use Asset',
-        'Lease Liability'
-      ];
-    }
+    return [
+      // Assets
+      'Cash',
+      'Accounts Receivable',
+      'Prepaid Insurance',
+      'Prepaid Rent',
+      'Prepaid Equipment Service',
+      'Office Supplies',
+      'Factory Supplies',
+      'Raw Materials Inventory',
+      
+      // Liabilities
+      'Accounts Payable',
+      'Wages Payable',
+      'Salary Payable',
+      'Interest Payable',
+      'Unearned Revenue',
+      
+      // Expenses
+      'Wages Expense',
+      'Salary Expense',
+      'Insurance Expense',
+      'Rent Expense',
+      'Equipment Service Expense',
+      'Office Supplies Expense',
+      'Factory Supplies Expense',
+      'Materials Expense',
+      'Interest Expense',
+      
+      // Revenues
+      'Revenue'
+    ];
   };
 
   // Filter suggestions based on input

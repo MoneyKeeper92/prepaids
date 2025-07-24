@@ -1,5 +1,5 @@
 // src/components/JournalEntryForm.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import JournalTable from './JournalTable';
 import { formatCurrency } from '../utils/formatUtils';
 import '../styles/JournalEntry.css';
@@ -10,11 +10,14 @@ const JournalEntryForm = ({
   toggleSolution, 
   showSolution,
   isCorrect,
-  onAdvance
+  onAdvance,
+  onPrevious,
+  isFirstScenario,
+  isLastScenario
 }) => {
   // Initialize with the exact number of lines needed based on solution
   const [journalLines, setJournalLines] = useState(() => {
-    return scenario.solution.map((_, index) => ({
+    return scenario.solution.entry.map((_, index) => ({
       id: index + 1,
       account: '',
       debit: '',
@@ -24,11 +27,12 @@ const JournalEntryForm = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [lastScenarioId, setLastScenarioId] = useState(scenario.id);
+  const successDialogRef = useRef(null);
 
   // Reset form only when scenario changes
   useEffect(() => {
     if (scenario.id !== lastScenarioId) {
-      setJournalLines(scenario.solution.map((_, index) => ({
+      setJournalLines(scenario.solution.entry.map((_, index) => ({
         id: index + 1,
         account: '',
         debit: '',
@@ -38,17 +42,18 @@ const JournalEntryForm = ({
       onCheck(null);
       setErrorMessage('');
     }
-  }, [scenario.id, scenario.solution, onCheck, lastScenarioId]);
+  }, [scenario.id, scenario.solution.entry, onCheck, lastScenarioId]);
 
+  // Scroll to success dialog when it appears
   useEffect(() => {
-    if (showSuccessDialog) {
+    if (showSuccessDialog && successDialogRef.current) {
+      // Use a small timeout to ensure the element is rendered before scrolling
       const timer = setTimeout(() => {
-        setShowSuccessDialog(false);
-        onAdvance();
-      }, 1500);
+        successDialogRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
       return () => clearTimeout(timer);
     }
-  }, [showSuccessDialog, onAdvance]);
+  }, [showSuccessDialog]);
 
   const checkAgainstSolution = (userEntries, solution) => {
     console.log("Running checkAgainstSolution");
@@ -157,8 +162,8 @@ const JournalEntryForm = ({
     }
     
     // Check against solution
-    console.log("Checking against solution:", scenario.solution);
-    const isCorrect = checkAgainstSolution(filledLines, scenario.solution);
+    console.log("Checking against solution:", scenario.solution.entry);
+    const isCorrect = checkAgainstSolution(filledLines, scenario.solution.entry);
     console.log("Is correct:", isCorrect);
     onCheck(isCorrect);
     
@@ -170,6 +175,11 @@ const JournalEntryForm = ({
     }
   };
 
+  const handleNext = () => {
+    setShowSuccessDialog(false);
+    onAdvance();
+  };
+
   return (
     <div className="journal-form-container">
       <h2 className="journal-heading">
@@ -179,7 +189,6 @@ const JournalEntryForm = ({
       <JournalTable 
         journalLines={journalLines}
         updateLine={updateLine}
-        leaseType={scenario.leaseType}
       />
       
       <div className="journal-button-container">
@@ -198,14 +207,6 @@ const JournalEntryForm = ({
         >
           {showSolution ? 'Hide Solution' : 'Show Solution'}
         </button>
-
-        <button
-          className="skip-button"
-          onClick={onAdvance}
-          type="button"
-        >
-          Skip Question
-        </button>
       </div>
       
       {errorMessage && (
@@ -214,9 +215,37 @@ const JournalEntryForm = ({
         </div>
       )}
 
+      <div className="navigation-controls">
+        <button 
+          disabled={isFirstScenario}
+          className="btn-secondary"
+          onClick={onPrevious}
+          type="button"
+        >
+          Previous
+        </button>
+        <button 
+          className="btn-primary"
+          onClick={onAdvance}
+          type="button"
+        >
+          Next
+        </button>
+      </div>
+
       {showSuccessDialog && (
-        <div className="success-dialog">
-          Correct! Moving to next question...
+        <div className="success-dialog" ref={successDialogRef}>
+          <div className="success-message">
+            Correct! Well done on this prepaid and accrual scenario.
+          </div>
+          <div className="next-button-container">
+            <button 
+              className="next-button"
+              onClick={handleNext}
+            >
+              Continue to Next Question
+            </button>
+          </div>
         </div>
       )}
     </div>

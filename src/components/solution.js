@@ -1,15 +1,16 @@
 // Create this file at: src/components/solution.js
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { formatCurrency } from '../utils/formatUtils';
 import '../styles/Solution.css';
 
 const Solution = ({ scenario }) => {
   // Calculate totals of the solution
-  const totalDebit = scenario.solution.reduce(
+  const totalDebit = scenario.solution.entry.reduce(
     (sum, line) => sum + (line.debit || 0), 0
   );
   
-  const totalCredit = scenario.solution.reduce(
+  const totalCredit = scenario.solution.entry.reduce(
     (sum, line) => sum + (line.credit || 0), 0
   );
   
@@ -26,7 +27,7 @@ const Solution = ({ scenario }) => {
           </tr>
         </thead>
         <tbody>
-          {scenario.solution.map((line, index) => (
+          {scenario.solution.entry.map((line, index) => (
             <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
               <td>{line.account}</td>
               <td>{line.debit ? formatCurrency(line.debit) : ''}</td>
@@ -43,41 +44,12 @@ const Solution = ({ scenario }) => {
         </tbody>
       </table>
       
-      {scenario.keyCalculations && (
-        <div className="calculations-container">
-          <p className="calculations-heading">Key Calculations:</p>
-          {scenario.leaseType === 'operating' ? (
-            <>
-              {scenario.keyCalculations.interest !== undefined && (
-                <p className="calculation-item">
-                  Interest: {formatCurrency(scenario.initialLeaseLiability)} × {scenario.interestRate * 100}% = {formatCurrency(scenario.keyCalculations.interest)}
-                </p>
-              )}
-              <p className="calculation-item">
-                Lease expense (single line item): {formatCurrency(scenario.keyCalculations.leaseExpense)}
-              </p>
-              <p className="calculation-item">
-                ROU Asset amortization: {formatCurrency(scenario.keyCalculations.rouAssetAmortization)}
-              </p>
-              <p className="calculation-item">
-                Liability reduction: {formatCurrency(scenario.keyCalculations.liabilityReduction)}
-              </p>
-            </>
-          ) : (
-            <>
-              {scenario.keyCalculations.interestExpense !== undefined && (
-                <p className="calculation-item">
-                  Interest expense: {formatCurrency(scenario.initialLeaseLiability)} × {scenario.interestRate * 100}% = {formatCurrency(scenario.keyCalculations.interestExpense)}
-                </p>
-              )}
-              <p className="calculation-item">
-                Principal reduction: {formatCurrency(scenario.keyCalculations.principalReduction)}
-              </p>
-              <p className="calculation-item">
-                Amortization expense (ROU Asset): {formatCurrency(scenario.keyCalculations.amortizationExpense)}
-              </p>
-            </>
-          )}
+      {scenario.explanation && (
+        <div className="explanation-container">
+          <h4 className="explanation-heading">Explanation:</h4>
+          <div className="explanation-content">
+            <ReactMarkdown>{scenario.explanation}</ReactMarkdown>
+          </div>
         </div>
       )}
     </div>

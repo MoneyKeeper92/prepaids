@@ -64,20 +64,20 @@
 }
 
 /* Special styling for different detail types */
-.detail-item:nth-child(1) span {  /* Lease Type */
+.detail-item:nth-child(1) span {  /* Topic */
   color: #4299e1;
   font-weight: 600;
 }
 
-.detail-item:nth-child(2) span {  /* Initial Lease Liability */
+.detail-item:nth-child(2) span {  /* Sub-Type */
   color: #48bb78;
 }
 
-.detail-item:nth-child(3) span {  /* Annual Payment */
+.detail-item:nth-child(3) span {  /* Difficulty */
   color: #805ad5;
 }
 
-.detail-item:nth-child(4) span {  /* Interest Rate */
+.detail-item:nth-child(4) span {  /* Original Date */
   color: #ed8936;
 }
 
@@ -111,6 +111,27 @@
   font-size: 1rem;
 }
 
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.data-item {
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  border: 1px solid rgba(66, 153, 225, 0.1);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.data-item strong {
+  color: #2b6cb0;
+  margin-right: 0.5rem;
+}
+
 @media (max-width: 768px) {
   .scenario-content {
     padding: 1rem;
@@ -133,5 +154,10 @@
 
   .additional-info {
     padding: 1rem;
+  }
+
+  .data-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
   }
 }
