@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/prepaids/static/css/main.499bf73c.css",
+    "main.js": "/prepaids/static/js/main.f1d82a5c.js",
+    "index.html": "/prepaids/index.html",
+    "main.499bf73c.css.map": "/prepaids/static/css/main.499bf73c.css.map",
+    "main.f1d82a5c.js.map": "/prepaids/static/js/main.f1d82a5c.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.499bf73c.css",
+    "static/js/main.f1d82a5c.js"
+  ]
+}
