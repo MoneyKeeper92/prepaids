@@ -1,5 +1,5 @@
 // src/App.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import ScenarioDetails from './components/ScenarioDetails';
 import JournalEntryForm from './components/JournalEntryForm';
@@ -30,7 +30,14 @@ function App() {
   // Completed scenarios tracking
   const [completedScenarios, setCompletedScenarios] = useState(() => {
     const saved = getCookie('completedScenarios');
-    return saved ? JSON.parse(saved) : {};
+    // Ensure saved data is in the new format { attempts, isCorrect }
+    const initialData = saved ? JSON.parse(saved) : {};
+    for (const id in initialData) {
+      if (typeof initialData[id] !== 'object') {
+        initialData[id] = { attempts: 1, isCorrect: !!initialData[id] };
+      }
+    }
+    return initialData;
   });
 
   // UI states
@@ -38,6 +45,9 @@ function App() {
   const [isCorrect, setIsCorrect] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState('');
+
+  // Ref for the solution component to enable auto-scrolling
+  const solutionRef = useRef(null);
 
   // Get current scenario by ID
   const currentScenario = sortedScenarios.find(s => s.id === currentId);
@@ -56,6 +66,13 @@ function App() {
   useEffect(() => {
     setCookie('completedScenarios', JSON.stringify(completedScenarios), 30);
   }, [completedScenarios]);
+
+  // Scroll to solution when it appears
+  useEffect(() => {
+    if (showSolution && solutionRef.current) {
+      solutionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [showSolution]);
 
   // Navigation functions
   const nextScenario = () => {
@@ -99,13 +116,15 @@ function App() {
   const markCompleted = (isCorrect = true) => {
     const scenarioId = currentScenario.id;
     
-    // Update completed scenarios
     setCompletedScenarios(prev => {
-      const newCompleted = {
+      const currentAttempts = prev[scenarioId]?.attempts || 0;
+      return {
         ...prev,
-        [scenarioId]: isCorrect
+        [scenarioId]: {
+          attempts: currentAttempts + 1,
+          isCorrect: isCorrect
+        }
       };
-      return newCompleted;
     });
 
     // Provide feedback based on performance
@@ -152,6 +171,24 @@ function App() {
   const correctlyCompletedCount = Object.values(completedScenarios).filter(isCorrect => isCorrect).length;
   const progressPercentage = Math.round((correctlyCompletedCount / sortedScenarios.length) * 100);
 
+  const onCheck = (result) => {
+    setIsCorrect(result);
+    if (!result) {
+      // Mark an incorrect attempt
+      const scenarioId = currentScenario.id;
+      setCompletedScenarios(prev => {
+        const currentAttempts = prev[scenarioId]?.attempts || 0;
+        return {
+          ...prev,
+          [scenarioId]: {
+            attempts: currentAttempts + 1,
+            isCorrect: false
+          }
+        };
+      });
+    }
+  };
+
   return (
     <div className="app-container">
       <Header 
@@ -173,24 +210,25 @@ function App() {
             
             <JournalEntryForm
               scenario={currentScenario}
-              onCheck={(result) => {
-                setIsCorrect(result);
-                if (result) {
-                  markCompleted(true);
-                }
-              }}
+              onCheck={onCheck}
               toggleSolution={toggleSolution}
               showSolution={showSolution}
               isCorrect={isCorrect}
-              onAdvance={nextScenario}
+              onAdvance={() => {
+                markCompleted(true);
+                nextScenario();
+              }}
               onPrevious={previousScenario}
               onRandom={randomScenario}
               isFirstScenario={isFirstScenario}
               isLastScenario={isLastScenario}
+              attempts={completedScenarios[currentId]?.attempts || 0}
             />
             
             {showSolution && (
-              <Solution scenario={currentScenario} />
+              <div ref={solutionRef}>
+                <Solution scenario={currentScenario} />
+              </div>
             )}
 
             {showFeedback && (

@@ -240,11 +240,24 @@
 
 .amount-input-container {
   position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Hide browser-default number input spinners */
+.amount-input::-webkit-outer-spin-button,
+.amount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.amount-input[type=number] {
+  -moz-appearance: textfield;
 }
 
 .currency-symbol {
   position: absolute;
-  left: 12px;
+  left: 8px;
   top: 8px;
 }
 
@@ -613,4 +626,14 @@
   border-color: #e2e8f0;
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.hint-message {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  background-color: #f0f9ff;
+  color: #3498db;
+  border: 1px solid #a9d6e5;
+  font-style: italic;
 }

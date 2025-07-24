@@ -14,7 +14,8 @@ const JournalEntryForm = ({
   onPrevious,
   onRandom,
   isFirstScenario,
-  isLastScenario
+  isLastScenario,
+  attempts
 }) => {
   // Initialize with the exact number of lines needed based on solution
   const [journalLines, setJournalLines] = useState(() => {
@@ -28,9 +29,10 @@ const JournalEntryForm = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [lastScenarioId, setLastScenarioId] = useState(scenario.id);
+  const [hint, setHint] = useState('');
   const successDialogRef = useRef(null);
 
-  // Reset form only when scenario changes
+  // Reset form and hint when scenario changes
   useEffect(() => {
     if (scenario.id !== lastScenarioId) {
       setJournalLines(scenario.solution.entry.map((_, index) => ({
@@ -42,8 +44,18 @@ const JournalEntryForm = ({
       setLastScenarioId(scenario.id);
       onCheck(null);
       setErrorMessage('');
+      setHint('');
     }
   }, [scenario.id, scenario.solution.entry, onCheck, lastScenarioId]);
+
+  // Show a hint after the second incorrect attempt
+  useEffect(() => {
+    if (attempts >= 2) {
+      const solutionAccounts = scenario.solution.entry.map(e => e.account);
+      const randomAccount = solutionAccounts[Math.floor(Math.random() * solutionAccounts.length)];
+      setHint(`Having trouble? Try using an account like "${randomAccount}".`);
+    }
+  }, [attempts, scenario.solution.entry]);
 
   // Scroll to success dialog when it appears
   useEffect(() => {
@@ -62,28 +74,32 @@ const JournalEntryForm = ({
 
   const getAccountAliases = () => {
     return {
-      'revenue': ['revenue', 'service revenue', 'consulting revenue', 'rent revenue'],
-      'unearned revenue': ['unearned revenue', 'unearned service revenue'],
-      'prepaid insurance': ['prepaid insurance', 'prepaid expenses'],
+      // Canonical Name: [alias1, alias2, ...]
+      'revenue': ['revenue', 'service revenue', 'consulting revenue', 'rent revenue', 'engineering fees revenue'],
+      'unearned revenue': ['unearned revenue', 'unearned service revenue', 'unearned consulting revenue', 'unearned rent revenue'],
+      'prepaid insurance': ['prepaid insurance', 'prepaid expenses'], // Grouping general "prepaid expenses"
       'insurance expense': ['insurance expense'],
       'wages expense': ['wages expense', 'salary expense'],
       'wages payable': ['wages payable', 'salary payable'],
-      'accounts receivable': ['accounts receivable'],
+      'accounts receivable': ['accounts receivable', 'a/r'],
+      'accounts payable': ['accounts payable', 'a/p'],
       'interest expense': ['interest expense'],
       'interest payable': ['interest payable'],
       'prepaid rent': ['prepaid rent'],
       'rent expense': ['rent expense'],
-      'factory supplies': ['factory supplies', 'office supplies'],
-      'factory supplies expense': ['factory supplies expense', 'office supplies expense'],
-      'raw materials inventory': ['raw materials inventory'],
+      'office supplies': ['office supplies', 'supplies'],
+      'office supplies expense': ['office supplies expense', 'supplies expense'],
+      'factory supplies': ['factory supplies'],
+      'factory supplies expense': ['factory supplies expense'],
+      'raw materials inventory': ['raw materials inventory', 'materials inventory', 'inventory'],
       'materials expense': ['materials expense'],
-      'equipment service expense': ['equipment service expense'],
-      'prepaid equipment service': ['prepaid equipment service'],
+      'equipment service expense': ['equipment service expense', 'service expense'],
+      'prepaid equipment service': ['prepaid equipment service', 'prepaid service'],
     };
   };
 
   const getCanonicalAccount = (accountName, aliases) => {
-    const normalizedAccount = accountName.toLowerCase().trim();
+    const normalizedAccount = accountName.toLowerCase().trim().replace(/\s+/g, ' ');
     for (const canonical in aliases) {
       if (aliases[canonical].includes(normalizedAccount)) {
         return canonical;
@@ -99,52 +115,51 @@ const JournalEntryForm = ({
     }
 
     const aliases = getAccountAliases();
-    const solutionMap = new Map();
-
-    solution.forEach(item => {
-      const canonicalAccount = getCanonicalAccount(item.account, aliases);
-      solutionMap.set(canonicalAccount, {
-        debit: item.debit,
-        credit: item.credit
-      });
-    });
-
-    for (const entry of userEntries) {
+    
+    // Create sorted, comparable strings for both user and solution entries
+    const formatEntry = (entry) => {
       const canonicalAccount = getCanonicalAccount(entry.account, aliases);
-      if (!solutionMap.has(canonicalAccount)) {
+      const debit = parseFloat(entry.debit) || 0;
+      const credit = parseFloat(entry.credit) || 0;
+      return `${canonicalAccount}|${debit.toFixed(2)}|${credit.toFixed(2)}`;
+    };
+
+    const sortedUserEntries = userEntries.map(formatEntry).sort();
+    const sortedSolutionEntries = solution.map(formatEntry).sort();
+
+    // Compare the sorted arrays
+    if (sortedUserEntries.length !== sortedSolutionEntries.length) return false;
+    
+    for (let i = 0; i < sortedUserEntries.length; i++) {
+      if (sortedUserEntries[i] !== sortedSolutionEntries[i]) {
         return false;
       }
-
-      const solutionEntry = solutionMap.get(canonicalAccount);
-      const userDebit = parseFloat(entry.debit) || 0;
-      const userCredit = parseFloat(entry.credit) || 0;
-      const solutionDebit = solutionEntry.debit || 0;
-      const solutionCredit = solutionEntry.credit || 0;
-
-      if (Math.abs(userDebit - solutionDebit) > 0.01 ||
-          Math.abs(userCredit - solutionCredit) > 0.01) {
-        return false;
-      }
-      
-      solutionMap.delete(canonicalAccount);
     }
 
-    return solutionMap.size === 0;
+    return true;
   };
 
   const updateLine = (id, field, value) => {
-    setJournalLines(journalLines.map(line => {
-      if (line.id === id) {
-        // If setting a debit, clear the credit and vice versa
-        if (field === 'debit' && value) {
-          return { ...line, [field]: value, credit: '' };
-        } else if (field === 'credit' && value) {
-          return { ...line, [field]: value, debit: '' };
-        }
-        return { ...line, [field]: value };
+    setJournalLines(currentLines => {
+      const newLines = [...currentLines];
+      const lineIndex = newLines.findIndex(line => line.id === id);
+      if (lineIndex === -1) return currentLines;
+  
+      const updatedLine = { ...newLines[lineIndex] };
+  
+      if (field === 'debit') {
+        updatedLine.debit = value;
+        if (value) updatedLine.credit = '';
+      } else if (field === 'credit') {
+        updatedLine.credit = value;
+        if (value) updatedLine.debit = '';
+      } else {
+        updatedLine[field] = value;
       }
-      return line;
-    }));
+  
+      newLines[lineIndex] = updatedLine;
+      return newLines;
+    });
   };
 
   const checkAnswer = () => {
@@ -227,6 +242,12 @@ const JournalEntryForm = ({
           {showSolution ? 'Hide Solution' : 'Show Solution'}
         </button>
       </div>
+      
+      {hint && (
+        <div className="hint-message">
+          {hint}
+        </div>
+      )}
       
       {errorMessage && (
         <div className="error-message">

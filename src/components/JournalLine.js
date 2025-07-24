@@ -1,10 +1,14 @@
 // src/components/JournalLine.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo, useRef } from 'react';
 
 const JournalLine = ({ line, index, updateLine }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+
+  const accountInputRef = useRef(null);
+  const debitInputRef = useRef(null);
+  const creditInputRef = useRef(null);
   
   // Define standard account names for prepaid and accrual scenarios
   const getAccountOptions = () => {
@@ -45,11 +49,13 @@ const JournalLine = ({ line, index, updateLine }) => {
   // Filter suggestions based on input
   const handleInputChange = (e) => {
     const value = e.target.value;
-    updateLine(line.id, 'account', value);
+    // Strip numeric characters from the input
+    const nonNumericValue = value.replace(/[0-9]/g, '');
+    updateLine(line.id, 'account', nonNumericValue);
     
-    if (value.length > 0) {
+    if (nonNumericValue.length > 0) {
       const filteredSuggestions = getAccountOptions().filter(
-        option => option.toLowerCase().includes(value.toLowerCase())
+        option => option.toLowerCase().includes(nonNumericValue.toLowerCase())
       );
       setSuggestions(filteredSuggestions);
       setShowSuggestions(true);
@@ -62,6 +68,10 @@ const JournalLine = ({ line, index, updateLine }) => {
 
   // Handle keyboard navigation
   const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !showSuggestions) {
+      e.preventDefault();
+      debitInputRef.current.focus();
+    }
     if (!showSuggestions) return;
 
     switch (e.key) {
@@ -92,6 +102,13 @@ const JournalLine = ({ line, index, updateLine }) => {
     }
   };
 
+  const handleAmountKeyDown = (e, currentField, nextFieldRef) => {
+    if (e.key === 'Tab' && !e.shiftKey) {
+      e.preventDefault();
+      nextFieldRef.current.focus();
+    }
+  };
+
   // Select a suggestion
   const selectSuggestion = (suggestion) => {
     updateLine(line.id, 'account', suggestion);
@@ -112,9 +129,13 @@ const JournalLine = ({ line, index, updateLine }) => {
     };
   }, []);
 
+  const handleCellMouseDown = (e) => {
+    e.preventDefault();
+  };
+
   return (
     <tr className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-      <td>
+      <td onMouseDown={handleCellMouseDown}>
         <div className="account-input-container">
           <input
             className="journal-input"
@@ -125,6 +146,7 @@ const JournalLine = ({ line, index, updateLine }) => {
             onKeyDown={handleKeyDown}
             onClick={(e) => e.stopPropagation()}
             autoComplete="off"
+            ref={accountInputRef}
           />
           {showSuggestions && suggestions.length > 0 && (
             <ul className="suggestions-list">
@@ -141,7 +163,7 @@ const JournalLine = ({ line, index, updateLine }) => {
           )}
         </div>
       </td>
-      <td>
+      <td onMouseDown={handleCellMouseDown}>
         <div className="amount-input-container">
           <span className="currency-symbol">$</span>
           <input
@@ -150,11 +172,13 @@ const JournalLine = ({ line, index, updateLine }) => {
             type="number"
             value={line.debit}
             onChange={(e) => updateLine(line.id, 'debit', e.target.value)}
+            onKeyDown={(e) => handleAmountKeyDown(e, 'debit', creditInputRef)}
             disabled={!!line.credit}
+            ref={debitInputRef}
           />
         </div>
       </td>
-      <td>
+      <td onMouseDown={handleCellMouseDown}>
         <div className="amount-input-container">
           <span className="currency-symbol">$</span>
           <input
@@ -164,6 +188,7 @@ const JournalLine = ({ line, index, updateLine }) => {
             value={line.credit}
             onChange={(e) => updateLine(line.id, 'credit', e.target.value)}
             disabled={!!line.debit}
+            ref={creditInputRef}
           />
         </div>
       </td>
@@ -171,4 +196,15 @@ const JournalLine = ({ line, index, updateLine }) => {
   );
 };
 
-export default JournalLine;
+// Memoize the component to prevent re-renders unless props change
+const areEqual = (prevProps, nextProps) => {
+  // Only re-render if the line data has changed
+  return (
+    prevProps.line.account === nextProps.line.account &&
+    prevProps.line.debit === nextProps.line.debit &&
+    prevProps.line.credit === nextProps.line.credit &&
+    prevProps.index === nextProps.index
+  );
+};
+
+export default memo(JournalLine, areEqual);
