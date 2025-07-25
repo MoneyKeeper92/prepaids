@@ -14,10 +14,10 @@ const sortedScenarios = [...prepaidAccrualScenarios].sort((a, b) => a.id.localeC
 // Calculate mastery level based on completed scenarios
 const calculateMasteryLevel = (completedScenarios) => {
   const totalScenarios = sortedScenarios.length;
-  const correctlyCompletedScenarios = Object.entries(completedScenarios)
-    .filter(([_, isCorrect]) => isCorrect)
-    .length;
-  return correctlyCompletedScenarios / totalScenarios;
+  const correctlyCompletedCount = Object.values(completedScenarios).filter(
+    (result) => result.isCorrect
+  ).length;
+  return totalScenarios > 0 ? correctlyCompletedCount / totalScenarios : 0;
 };
 
 function App() {
@@ -98,6 +98,8 @@ function App() {
   };
 
   const randomScenario = () => {
+    if (sortedScenarios.length <= 1) return; // Can't pick a different one
+
     let randomIndex;
     do {
       randomIndex = Math.floor(Math.random() * sortedScenarios.length);
@@ -168,8 +170,13 @@ function App() {
   };
 
   // Calculate progress percentage
-  const correctlyCompletedCount = Object.values(completedScenarios).filter(isCorrect => isCorrect).length;
-  const progressPercentage = Math.round((correctlyCompletedCount / sortedScenarios.length) * 100);
+  const correctlyCompletedCount = Object.values(completedScenarios).filter(
+    (result) => result.isCorrect
+  ).length;
+  const progressPercentage =
+    sortedScenarios.length > 0
+      ? Math.round((correctlyCompletedCount / sortedScenarios.length) * 100)
+      : 0;
 
   const onCheck = (result) => {
     setIsCorrect(result);
@@ -205,10 +212,11 @@ function App() {
           <>
             <ScenarioDetails 
               scenario={currentScenario}
-              attempts={completedScenarios[currentScenario.id] ? 1 : 0}
+              attempts={completedScenarios[currentScenario.id]?.attempts || 0}
             />
             
             <JournalEntryForm
+              key={currentScenario.id} // Add key to force re-mount
               scenario={currentScenario}
               onCheck={onCheck}
               toggleSolution={toggleSolution}

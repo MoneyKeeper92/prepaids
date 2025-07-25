@@ -17,36 +17,20 @@ const JournalEntryForm = ({
   isLastScenario,
   attempts
 }) => {
-  // Initialize with the exact number of lines needed based on solution
-  const [journalLines, setJournalLines] = useState(() => {
-    return scenario.solution.entry.map((_, index) => ({
+  // Initialize state based on the scenario prop.
+  // Since the component is re-keyed, this will run on each new scenario.
+  const [journalLines, setJournalLines] = useState(() =>
+    scenario.solution.entry.map((_, index) => ({
       id: index + 1,
       account: '',
       debit: '',
-      credit: ''
-    }));
-  });
+      credit: '',
+    }))
+  );
   const [errorMessage, setErrorMessage] = useState('');
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  const [lastScenarioId, setLastScenarioId] = useState(scenario.id);
   const [hint, setHint] = useState('');
   const successDialogRef = useRef(null);
-
-  // Reset form and hint when scenario changes
-  useEffect(() => {
-    if (scenario.id !== lastScenarioId) {
-      setJournalLines(scenario.solution.entry.map((_, index) => ({
-        id: index + 1,
-        account: '',
-        debit: '',
-        credit: ''
-      })));
-      setLastScenarioId(scenario.id);
-      onCheck(null);
-      setErrorMessage('');
-      setHint('');
-    }
-  }, [scenario.id, scenario.solution.entry, onCheck, lastScenarioId]);
 
   // Show a hint after the second incorrect attempt
   useEffect(() => {
@@ -70,6 +54,10 @@ const JournalEntryForm = ({
 
   const addLine = () => {
     setJournalLines([...journalLines, { id: journalLines.length + 1, account: '', debit: '', credit: '' }]);
+  };
+
+  const deleteLine = (idToDelete) => {
+    setJournalLines((prevLines) => prevLines.filter((line) => line.id !== idToDelete));
   };
 
   const getAccountAliases = () => {
@@ -184,7 +172,14 @@ const JournalEntryForm = ({
 
     // Check if debits equal credits
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      setErrorMessage(`Your entry is unbalanced. Debits: ${formatCurrency(totalDebit)}, Credits: ${formatCurrency(totalCredit)}`);
+      const difference = formatCurrency(Math.abs(totalDebit - totalCredit));
+      let unbalancedMessage = `Your entry is unbalanced by ${difference}. `;
+      if (totalDebit > totalCredit) {
+        unbalancedMessage += 'Debits are higher than credits.';
+      } else {
+        unbalancedMessage += 'Credits are higher than debits.';
+      }
+      setErrorMessage(unbalancedMessage);
       onCheck(false);
       return;
     }
@@ -215,6 +210,7 @@ const JournalEntryForm = ({
       <JournalTable 
         journalLines={journalLines}
         updateLine={updateLine}
+        deleteLine={deleteLine}
       />
       
       <div className="journal-button-container">

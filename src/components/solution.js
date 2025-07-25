@@ -49,7 +49,7 @@ const Solution = ({ scenario }) => {
       {scenario.explanation && (
         <div className="explanation-container">
           <div className="explanation-header">
-            <h4 className="explanation-heading">Explanation:</h4>
+          <h4 className="explanation-heading">Explanation:</h4>
             <button 
               className="expand-collapse-button"
               onClick={() => setIsExpanded(!isExpanded)}

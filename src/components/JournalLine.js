@@ -1,7 +1,7 @@
 // src/components/JournalLine.js
 import React, { useState, useEffect, memo, useRef } from 'react';
 
-const JournalLine = ({ line, index, updateLine }) => {
+const JournalLine = ({ line, index, updateLine, deleteLine }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -191,6 +191,15 @@ const JournalLine = ({ line, index, updateLine }) => {
             ref={creditInputRef}
           />
         </div>
+      </td>
+      <td>
+        <button
+          onClick={() => deleteLine(line.id)}
+          className="delete-line-button"
+          title="Delete this line"
+        >
+          &times;
+        </button>
       </td>
     </tr>
   );
