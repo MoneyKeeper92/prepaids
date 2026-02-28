@@ -129,13 +129,9 @@ const JournalLine = ({ line, index, updateLine, deleteLine }) => {
     };
   }, []);
 
-  const handleCellMouseDown = (e) => {
-    e.preventDefault();
-  };
-
   return (
     <tr className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-      <td onMouseDown={handleCellMouseDown}>
+      <td>
         <div className="account-input-container">
           <input
             className="journal-input"
@@ -151,8 +147,8 @@ const JournalLine = ({ line, index, updateLine, deleteLine }) => {
           {showSuggestions && suggestions.length > 0 && (
             <ul className="suggestions-list">
               {suggestions.map((suggestion, i) => (
-                <li 
-                  key={i} 
+                <li
+                  key={i}
                   onClick={() => selectSuggestion(suggestion)}
                   className={`suggestion-item ${i === selectedIndex ? 'selected' : ''}`}
                 >
@@ -163,7 +159,7 @@ const JournalLine = ({ line, index, updateLine, deleteLine }) => {
           )}
         </div>
       </td>
-      <td onMouseDown={handleCellMouseDown}>
+      <td>
         <div className="amount-input-container">
           <span className="currency-symbol">$</span>
           <input
@@ -178,7 +174,7 @@ const JournalLine = ({ line, index, updateLine, deleteLine }) => {
           />
         </div>
       </td>
-      <td onMouseDown={handleCellMouseDown}>
+      <td>
         <div className="amount-input-container">
           <span className="currency-symbol">$</span>
           <input
